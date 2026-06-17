@@ -2,7 +2,6 @@
 /Fontend_bookshop/.env.example
 /BookShop_Backend/target
 /BookShop_Backend/.idea
-/BookShop_Backend/.mvn
 /BookShop_Backend/import-errors
 /BookShop_Fontend/dist
 /BookShop_Fontend/node_modules
