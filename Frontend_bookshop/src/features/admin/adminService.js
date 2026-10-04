@@ -1,49 +1,4 @@
-import { apiFetch } from "../../shared/api/httpClient";
-
-function extractUsers(data) {
-  return Array.isArray(data)
-    ? data
-    : data?.userInfoResponseDTOS || data?.userInfoResponseDTOList || data?.userDTOList || data?.users || [];
-}
-
-function getUserKey(user, index) {
-  return user?.id || user?.userId || user?.phone_number || user?.phoneNumber || `user-${index}`;
-}
-
-function mergeUserResponses(responses) {
-  const userMap = new Map();
-
-  responses.forEach((data) => {
-    extractUsers(data).forEach((user, index) => {
-      userMap.set(getUserKey(user, index), user);
-    });
-  });
-
-  const userDTOList = [...userMap.values()];
-  return {
-    userDTOList,
-    numberOfUsers: userDTOList.length,
-  };
-}
-
-function requestUsersByRole(filters, roleId, token, options = {}) {
-  const body = {
-    address: filters.address || "",
-  };
-
-  if (roleId !== undefined && roleId !== null && String(roleId).trim() !== "") {
-    body.role_id = roleId;
-    body.roleId = roleId;
-  }
-
-  return apiFetch(`/api/admin/dashboard/user`, {
-    method: "POST",
-    token,
-    local: true,
-    body,
-    ...options,
-  });
-}
+import { apiFetch, toQuery } from "../../shared/api/httpClient";
 
 export const adminService = {
   getRevenue(month, token, options = {}) {
@@ -54,13 +9,16 @@ export const adminService = {
     return apiFetch(`/api/admin/dashboard/best-selling-books-${top}`, { token, ...options });
   },
 
-  async getUsers(filters = {}, token, options = {}) {
-    const roleId = String(filters.role_id || "").trim();
+  getUsers(filters = {}, token, options = {}) {
+    const query = toQuery({
+      address: String(filters.address ?? "").trim(),
+      role_id: String(filters.role_id ?? "").trim(),
+    });
 
-    if (roleId) {
-      return requestUsersByRole(filters, roleId, token, options);
-    }
-
-    return requestUsersByRole(filters, "", token, options);
+    return apiFetch(`/api/admin/dashboard/user${query}`, {
+      method: "GET",
+      token,
+      ...options,
+    });
   },
 };
