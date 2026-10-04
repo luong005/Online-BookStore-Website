@@ -44,6 +44,11 @@ public class OrderBookController {
         return ResponseEntity.ok(orderService.getOrderDetail(id));
     }
 
+    @PostMapping("/order/pay-later")
+    public ResponseEntity<?> payLater(@Valid @RequestBody OrderPaymentRequestDTO requestDTO) {
+        return ResponseEntity.ok(ApiResponse.success(paymentService.createPayLaterOrder(requestDTO)));
+    }
+
 //    @DeleteMapping("/order-{id}")
 //    public ResponseEntity<?> deleteOrder(@PathVariable Long id){
 //        orderService.deleteOrder(id);

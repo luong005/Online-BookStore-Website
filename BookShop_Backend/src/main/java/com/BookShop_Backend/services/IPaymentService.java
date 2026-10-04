@@ -10,5 +10,7 @@ public interface IPaymentService {
 
     OrderPaymentStatusDTO getPaymentStatus(Long orderCode);
 
+    OrderPaymentResponseDTO createPayLaterOrder(OrderPaymentRequestDTO requestDTO);
+
     OrderPaymentStatusDTO handlePayOSWebhook(Object body) throws JsonProcessingException;
 }

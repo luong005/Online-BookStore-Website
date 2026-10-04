@@ -15,6 +15,7 @@ import com.BookShop_Backend.models.OrderItemEntity;
 import com.BookShop_Backend.models.UserEntity;
 import com.BookShop_Backend.repositories.CartItemRepository;
 import com.BookShop_Backend.repositories.CartRepository;
+import com.BookShop_Backend.repositories.BookRepository;
 import com.BookShop_Backend.repositories.OrderItemRepository;
 import com.BookShop_Backend.repositories.OrderRepository;
 import com.BookShop_Backend.repositories.UserRepository;
@@ -43,6 +44,7 @@ public class PaymentService implements IPaymentService {
     private final PayOS payOS;
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
+    private final BookRepository bookRepository;
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final UserRepository userRepository;
@@ -152,6 +154,75 @@ public class PaymentService implements IPaymentService {
     }
 
     @Override
+    @Transactional
+    public OrderPaymentResponseDTO createPayLaterOrder(OrderPaymentRequestDTO requestDTO) {
+        MyUserDetail principal = getCurrentUser();
+        UserEntity user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new BusinessException("USER_NOT_FOUND", "Khong tim thay user", HttpStatus.NOT_FOUND));
+
+        CartEntity cart = cartRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException("CART_NOT_FOUND", "Khong tim thay gio hang", HttpStatus.NOT_FOUND));
+
+        List<CartItemEntity> cartItems = cartItemRepository.findAllByCart_Id(cart.getId());
+        if (cartItems.isEmpty()) {
+            throw new BusinessException("EMPTY_CART", "Gio hang dang trong");
+        }
+
+        double totalPrice = 0D;
+        for (CartItemEntity cartItem : cartItems) {
+            BookEntity book = cartItem.getBook();
+            if (book == null) {
+                throw new BusinessException("BOOK_NOT_FOUND", "San pham trong gio hang khong hop le", HttpStatus.BAD_REQUEST);
+            }
+            if (book.getStatus() == null || book.getStatus() != 1) {
+                throw new BusinessException("BOOK_NOT_FOUND", "San pham trong gio hang da bi vo hieu hoa", HttpStatus.BAD_REQUEST);
+            }
+            if (cartItem.getQuantity() == null || cartItem.getQuantity() <= 0) {
+                throw new BusinessException("INVALID_CARTITEM", "So luong san pham khong hop le", HttpStatus.BAD_REQUEST);
+            }
+            if (book.getStock() == null || cartItem.getQuantity() > book.getStock()) {
+                throw new BusinessException("INVALID_CARTITEM", "So luong ton kho khong du", HttpStatus.BAD_REQUEST);
+            }
+            totalPrice += book.getPrice() * cartItem.getQuantity();
+        }
+
+        OrderEntity order = OrderEntity.builder()
+                .orderCode(generateOrderCode())
+                .user(user)
+                .totalPrice(totalPrice)
+                .paymentStatus(PaymentStatus.PAY_LATER)
+                .address(requestDTO.getShippingAddress().trim())
+                .phoneNumber(requestDTO.getPhoneNumber().trim())
+                .build();
+        orderRepository.save(order);
+
+        List<OrderItemEntity> orderItems = new ArrayList<>();
+        for (CartItemEntity cartItem : cartItems) {
+            BookEntity book = cartItem.getBook();
+            orderItems.add(OrderItemEntity.builder()
+                    .order(order)
+                    .book(book)
+                    .quantity(cartItem.getQuantity())
+                    .price(book.getPrice())
+                    .build());
+        }
+        orderItemRepository.saveAll(orderItems);
+
+        deductStockForOrder(order);
+        removePaidItemsFromCart(order);
+
+        return OrderPaymentResponseDTO.builder()
+                .orderId(order.getId())
+                .orderCode(order.getOrderCode())
+                .totalPrice(order.getTotalPrice())
+                .paymentStatus(order.getPaymentStatus().name())
+                .payosStatus(PaymentStatus.PAY_LATER.name())
+                .message("Tao don hang tra sau thanh cong")
+                .build();
+    }
+
+
+    @Override
     public OrderPaymentStatusDTO getPaymentStatus(Long orderCode) {
         OrderEntity order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new BusinessException("ORDER_NOT_FOUND", "Khong tim thay don hang", HttpStatus.NOT_FOUND));
@@ -237,6 +308,21 @@ public class PaymentService implements IPaymentService {
                 }
                 break;
             }
+        }
+    }
+
+    private void deductStockForOrder(OrderEntity order) {
+        List<OrderItemEntity> orderItems = orderItemRepository.findAllByOrder_Id(order.getId());
+        for (OrderItemEntity orderItem : orderItems) {
+            BookEntity book = orderItem.getBook();
+            if (book == null) {
+                throw new BusinessException("BOOK_NOT_FOUND", "San pham trong don hang khong hop le", HttpStatus.BAD_REQUEST);
+            }
+            if (book.getStock() == null || book.getStock() < orderItem.getQuantity()) {
+                throw new BusinessException("INVALID_CARTITEM", "So luong ton kho khong du", HttpStatus.BAD_REQUEST);
+            }
+            book.setStock(book.getStock() - orderItem.getQuantity());
+            bookRepository.save(book);
         }
     }
 
