@@ -36,7 +36,7 @@ function requestUsersByRole(filters, roleId, token, options = {}) {
     body.roleId = roleId;
   }
 
-  return apiFetch("/__bookshop/admin-users", {
+  return apiFetch(`/api/admin/dashboard/user`, {
     method: "POST",
     token,
     local: true,
