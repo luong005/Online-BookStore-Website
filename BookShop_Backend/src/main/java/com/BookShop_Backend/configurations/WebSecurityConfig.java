@@ -21,6 +21,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Configuration
 //@EnableMethodSecurity
@@ -78,9 +79,19 @@ public class WebSecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.stream(allowedOriginPatterns.split(","))
+        configuration.setAllowedOriginPatterns(Stream.concat(
+                        Stream.of(
+                                "http://localhost:3000",
+                                "http://127.0.0.1:5500",
+                                "http://localhost:5173",
+                                "https://online-bookstore-website.pages.dev",
+                                "https://*.online-bookstore-website.pages.dev"
+                        ),
+                        Arrays.stream(allowedOriginPatterns.split(","))
+                )
                 .map(String::trim)
                 .filter(originPattern -> !originPattern.isBlank())
+                .distinct()
                 .toList());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
