@@ -104,7 +104,7 @@ public class PaymentService implements IPaymentService {
                 .orderCode(orderCode)
                 .user(user)
                 .totalPrice(totalPrice)
-                .paymentStatus(PaymentStatus.UNPAID)
+                .paymentStatus(PaymentStatus.khiUNPAID)
                 .address(requestDTO.getShippingAddress().trim())
                 .phoneNumber(requestDTO.getPhoneNumber().trim())
                 .build();

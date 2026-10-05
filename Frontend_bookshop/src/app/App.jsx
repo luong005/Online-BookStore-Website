@@ -365,8 +365,7 @@ export default function App() {
       if (pendingOrderCode) {
         try {
           const status = await orderService.getPaymentStatus(pendingOrderCode, token);
-          const statusText = JSON.stringify(status).toUpperCase();
-          if (statusText.includes("PAID") || statusText.includes("SUCCESS")) {
+          if (status?.payment_status === "PAID" || status?.paymentStatus === "PAID") {
             await Promise.allSettled(pendingCartIds.map((id) => cartService.removeItem(id, token)));
           }
         } catch {
