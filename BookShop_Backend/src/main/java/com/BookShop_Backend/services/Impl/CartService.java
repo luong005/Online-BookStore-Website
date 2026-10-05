@@ -80,7 +80,7 @@ public class CartService implements ICartService {
         CartEntity cartEntity = cartRepository.findById(cartItemEntity.getCart().getId()).get();
         UserEntity userEntity = userRepository.findById(cartEntity.getUser().getId()).get();
         MyUserDetail myUserDetail = SecurityUtils.getPrincipal();
-        if (myUserDetail.getId() != userEntity.getId()){
+        if (!myUserDetail.getId().equals(userEntity.getId())){
             throw new BusinessException("DELETE_FAILED", "Mat hang khong ton tai", HttpStatus.BAD_REQUEST);
         }
         cartItemRepository.deleteById(id);
