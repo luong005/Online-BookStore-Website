@@ -127,6 +127,9 @@ export default function App() {
   const [adminMonth, setAdminMonth] = useState(new Date().getMonth() + 1);
   const [revenue, setRevenue] = useState(null);
   const [bestSellers, setBestSellers] = useState([]);
+  const [recommendedBestSellers, setRecommendedBestSellers] = useState([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(true);
+  const [recommendationsError, setRecommendationsError] = useState(false);
   const [bestSellerTop, setBestSellerTop] = useState("10");
   const [users, setUsers] = useState([]);
   const [userTotal, setUserTotal] = useState(0);
@@ -302,6 +305,24 @@ export default function App() {
   useEffect(() => {
     loadBooks();
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "shop") return undefined;
+    let active = true;
+    setLoadingRecommendations(true);
+    setRecommendationsError(false);
+    bookService.getBestSellers(4)
+      .then((data) => {
+        if (active) setRecommendedBestSellers(normalizeList(data));
+      })
+      .catch(() => {
+        if (active) setRecommendationsError(true);
+      })
+      .finally(() => {
+        if (active) setLoadingRecommendations(false);
+      });
+    return () => { active = false; };
+  }, [activeTab]);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -747,6 +768,9 @@ export default function App() {
         {activeTab === "shop" ? (
           <BookCatalog
             books={visibleShopBooks}
+            recommendedBestSellers={recommendedBestSellers}
+            loadingRecommendations={loadingRecommendations}
+            recommendationsError={recommendationsError}
             filters={filters}
             appliedFilters={appliedFilters}
             categories={categories}

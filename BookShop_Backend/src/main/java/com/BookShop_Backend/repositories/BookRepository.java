@@ -15,6 +15,7 @@ public interface BookRepository extends JpaRepository<BookEntity, Long> {
               AND (:category IS NULL OR LOWER(b.category.name) LIKE LOWER(CONCAT('%', :category, '%')))
               AND (:minPrice IS NULL OR b.price >= :minPrice)
               AND (:maxPrice IS NULL OR b.price <= :maxPrice)
+            ORDER BY b.createdAt DESC, b.id DESC
             """)
     List<BookEntity> searchBooks(
             @Param("name") String name,

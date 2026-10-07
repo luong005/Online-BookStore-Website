@@ -5,6 +5,10 @@ export const bookService = {
     return apiFetch(`/api/books/search${toQuery(filters)}`);
   },
 
+  getBestSellers(top = 4) {
+    return apiFetch(`/api/books/best-selling-${top}`);
+  },
+
   getBook(bookId) {
     return apiFetch(`/api/book-${bookId}`);
   },

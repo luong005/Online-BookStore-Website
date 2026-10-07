@@ -10,6 +10,9 @@ const booksPerPage = 12;
 
 export function BookCatalog({
   books,
+  recommendedBestSellers,
+  loadingRecommendations,
+  recommendationsError,
   filters,
   appliedFilters,
   categories,
@@ -90,6 +93,32 @@ export function BookCatalog({
             <button className="primary-btn" type="submit" disabled={loading}>Tìm kiếm</button>
             <button className="ghost-btn" type="button" onClick={onToggleSearch}>Bộ lọc</button>
           </form>
+
+          <section className="catalog-recommendations" aria-labelledby="recommendations-heading" aria-busy={loadingRecommendations}>
+            <div className="catalog-recommendations-heading">
+              <div>
+                <span className="catalog-recommendations-eyebrow">Gợi ý cho bạn</span>
+                <h2 id="recommendations-heading">Sách bán chạy nhất</h2>
+                <p className="muted-text">Những cuốn sách được mua nhiều nhất tại cửa hàng.</p>
+              </div>
+            </div>
+            {loadingRecommendations ? (
+              <p className="muted-text" role="status">Đang tải sách bán chạy...</p>
+            ) : recommendationsError ? (
+              <p className="muted-text" role="status">Chưa tải được sách bán chạy.</p>
+            ) : recommendedBestSellers.length ? (
+              <div className="book-grid">
+                {recommendedBestSellers.map((book, index) => (
+                  <div className="recommended-book" key={book.id}>
+                    <span className="recommended-book-rank">#{index + 1} bán chạy</span>
+                    <BookCard book={book} onAddToCart={onAddToCart} onViewDetail={onViewDetail} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted-text">Chưa có sách bán chạy để đề xuất.</p>
+            )}
+          </section>
 
           <div className="catalog-results-heading">
             <div>
