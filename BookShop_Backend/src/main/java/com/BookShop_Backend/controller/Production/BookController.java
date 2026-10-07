@@ -6,6 +6,7 @@ import com.BookShop_Backend.DTO.Production.ImportBooksResponseDTO;
 import com.BookShop_Backend.DTO.Production.UpdateBookRequestDTO;
 
 import com.BookShop_Backend.services.IBookService;
+import com.BookShop_Backend.services.IOrderService;
 import com.BookShop_Backend.type.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BookController {
     private final IBookService bookService;
+    private final IOrderService orderService;
+
+    @GetMapping("/books/best-selling-{top}")
+    public ResponseEntity<?> getBestSellingBooks(@PathVariable Integer top) {
+        List<BookDTO> books = orderService.getBestSeller(Math.min(Math.max(top, 1), 20)).stream()
+                .map(bestSeller -> bestSeller.getBookDTOS())
+                .toList();
+        return ResponseEntity.ok(ApiResponse.success(books));
+    }
 
     @GetMapping("/books/search")
     public ResponseEntity<?> searchBooks(

@@ -100,7 +100,8 @@ public class JwtTokenFilter  extends OncePerRequestFilter {
                 Pair.of(String.format("%s/login", apiPrefix), "POST"),
                 Pair.of(String.format("/order/create"), "POST"),
                 Pair.of(String.format("%s/books", apiPrefix), "GET"),
-                Pair.of(String.format("%s/book-", apiPrefix), "GET")
+                Pair.of(String.format("%s/book-", apiPrefix), "GET"),
+                Pair.of(String.format("/payment/payos_transfer_handler", apiPrefix), "POST")
         );
         for(Pair<String, String> bypassToken: bypassTokens) {
             // ktra url request chua url trong list va dung method ko

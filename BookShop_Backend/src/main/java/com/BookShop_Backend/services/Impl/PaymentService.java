@@ -257,9 +257,21 @@ public class PaymentService implements IPaymentService {
         try {
             // Verify webhook de chac chan callback dung la tu PayOS gui sang.
             WebhookData webhookData = payOS.webhooks().verify(body);
-            OrderEntity order = orderRepository.findByOrderCode(webhookData.getOrderCode())
-                    .orElseThrow(() -> new BusinessException("ORDER_NOT_FOUND", "Khong tim thay don hang tu webhook", HttpStatus.NOT_FOUND));
-
+            boolean isPayOsTest =
+                    webhookData.getOrderCode() == 123L
+                            && webhookData.getAmount() == 3000L
+                            && "VQRIO123".equals(webhookData.getDescription());
+            if (isPayOsTest) {
+                return null; // Controller hiện tại sẽ trả HTTP 200; không cập nhật DB.
+            }
+        // Giao dịch thật vẫn phải có order trong DB.
+            OrderEntity order = orderRepository
+                    .findByOrderCode(webhookData.getOrderCode())
+                    .orElseThrow(() -> new BusinessException(
+                            "ORDER_NOT_FOUND",
+                            "Khong tim thay don hang tu webhook",
+                            HttpStatus.NOT_FOUND
+                    ));
             // Sau khi verify, query lai PayOS de lay trang thai thanh toan "nguon su that".
             PaymentLink paymentLink = payOS.paymentRequests().get(webhookData.getOrderCode());
             String payOSStatus = paymentLink.getStatus().getValue();
