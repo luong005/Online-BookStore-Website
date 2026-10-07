@@ -543,6 +543,9 @@ export default function App() {
       };
 
       if (activeTab === "register") {
+        if (!/^[0-9]{10}$/.test(payload.phone_number)) {
+          throw new Error("Số điện thoại phải gồm đúng 10 chữ số.");
+        }
         if (authForm.password !== authForm.confirmPassword) {
           throw new Error("Mật khẩu nhập lại không khớp.");
         }

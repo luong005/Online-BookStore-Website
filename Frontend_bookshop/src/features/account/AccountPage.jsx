@@ -24,8 +24,20 @@ export function AccountPage({
               Số điện thoại
               <input
                 required
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                pattern={mode === "register" ? "[0-9]{10}" : undefined}
+                minLength={mode === "register" ? 10 : undefined}
+                maxLength={mode === "register" ? 10 : undefined}
+                title={mode === "register" ? "Số điện thoại phải gồm đúng 10 chữ số" : undefined}
                 value={authForm.phoneNumber}
-                onChange={(event) => onAuthFormChange({ ...authForm, phoneNumber: event.target.value })}
+                onChange={(event) => onAuthFormChange({
+                  ...authForm,
+                  phoneNumber: mode === "register"
+                    ? event.target.value.replace(/\D/g, "").slice(0, 10)
+                    : event.target.value,
+                })}
               />
             </label>
             <label>
