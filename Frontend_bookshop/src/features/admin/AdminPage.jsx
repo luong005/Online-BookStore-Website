@@ -17,6 +17,7 @@ export const emptyBookForm = {
 
 export const emptyUpdateBookForm = {
   id: "",
+  content: "",
   price: "",
   stock: "",
   imageURL: "",
@@ -272,6 +273,7 @@ export function AdminPage({
   function openUpdateModal(book) {
     onUpdateBookFormChange({
       id: book.id,
+      content: book.content ?? "",
       price: book.price ?? "",
       stock: book.stock ?? "",
       imageURL: book.imageURL || book.imageUrl || "",
@@ -535,6 +537,15 @@ export function AdminPage({
               <label>
                 Mã sách
                 <input readOnly value={`Sách ID: ${updateBookForm.id}`} />
+              </label>
+              <label>
+                Nội dung sách
+                <textarea
+                  required
+                  rows="3"
+                  value={updateBookForm.content}
+                  onChange={(event) => onUpdateBookFormChange({ ...updateBookForm, content: event.target.value })}
+                />
               </label>
               <label>
                 Giá

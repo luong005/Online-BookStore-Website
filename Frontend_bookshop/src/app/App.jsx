@@ -621,6 +621,7 @@ export default function App() {
       await bookService.updateBook(
         updateBookForm.id,
         {
+          content: updateBookForm.content,
           price: Number(updateBookForm.price),
           stock: Number(updateBookForm.stock),
           imageURL: updateBookForm.imageURL,

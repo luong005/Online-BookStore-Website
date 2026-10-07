@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "../../shared/components/EmptyState";
 import { formatMoney } from "../../shared/utils/formatters";
 import { BookCard } from "./BookCard";
@@ -29,6 +29,8 @@ export function BookCatalog({
   onAddToCart,
 }) {
   const [currentPage, setCurrentPage] = useState(1);
+  const recommendationsRef = useRef(null);
+  const [recommendationScroll, setRecommendationScroll] = useState({ previous: false, next: false });
   const hasFilters = Object.values(appliedFilters).some((value) => String(value).trim());
   const totalPages = Math.max(1, Math.ceil(books.length / booksPerPage));
   const pagedBooks = useMemo(() => {
@@ -39,6 +41,34 @@ export function BookCatalog({
   useEffect(() => {
     setCurrentPage(1);
   }, [books]);
+
+  useEffect(() => {
+    const track = recommendationsRef.current;
+    if (!track) return undefined;
+
+    function updateScrollButtons() {
+      const maxScroll = track.scrollWidth - track.clientWidth;
+      setRecommendationScroll({
+        previous: track.scrollLeft > 1,
+        next: track.scrollLeft < maxScroll - 1,
+      });
+    }
+
+    updateScrollButtons();
+    track.addEventListener("scroll", updateScrollButtons, { passive: true });
+    const resizeObserver = new ResizeObserver(updateScrollButtons);
+    resizeObserver.observe(track);
+
+    return () => {
+      track.removeEventListener("scroll", updateScrollButtons);
+      resizeObserver.disconnect();
+    };
+  }, [recommendedBestSellers]);
+
+  function scrollRecommendations(direction) {
+    const track = recommendationsRef.current;
+    if (track) track.scrollBy({ left: direction * track.clientWidth * 0.8, behavior: "smooth" });
+  }
 
   function goToPage(page) {
     setCurrentPage(Math.min(Math.max(1, page), totalPages));
@@ -101,13 +131,19 @@ export function BookCatalog({
                 <h2 id="recommendations-heading">Sách bán chạy nhất</h2>
                 <p className="muted-text">Những cuốn sách được mua nhiều nhất tại cửa hàng.</p>
               </div>
+              {recommendationScroll.previous || recommendationScroll.next ? (
+                <div className="recommendation-controls" aria-label="Điều hướng sách bán chạy">
+                  <button type="button" aria-label="Xem sách bán chạy trước" disabled={!recommendationScroll.previous} onClick={() => scrollRecommendations(-1)}>&lsaquo;</button>
+                  <button type="button" aria-label="Xem sách bán chạy tiếp" disabled={!recommendationScroll.next} onClick={() => scrollRecommendations(1)}>&rsaquo;</button>
+                </div>
+              ) : null}
             </div>
             {loadingRecommendations ? (
               <p className="muted-text" role="status">Đang tải sách bán chạy...</p>
             ) : recommendationsError ? (
               <p className="muted-text" role="status">Chưa tải được sách bán chạy.</p>
             ) : recommendedBestSellers.length ? (
-              <div className="book-grid">
+              <div className="recommendations-track" ref={recommendationsRef} role="region" aria-label="Danh sách sách bán chạy" tabIndex={0}>
                 {recommendedBestSellers.map((book, index) => (
                   <div className="recommended-book" key={book.id}>
                     <span className="recommended-book-rank">#{index + 1} bán chạy</span>
