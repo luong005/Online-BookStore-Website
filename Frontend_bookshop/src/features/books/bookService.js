@@ -5,7 +5,7 @@ export const bookService = {
     return apiFetch(`/api/books/search${toQuery(filters)}`);
   },
 
-  getBestSellers(top = 4) {
+  getBestSellers(top = 10) {
     return apiFetch(`/api/books/best-selling-${top}`);
   },
 
@@ -29,6 +29,14 @@ export const bookService = {
       method: "POST",
       token,
       body: formData,
+    });
+  },
+
+  downloadImportErrors(errorFilePath, token) {
+    const fileName = errorFilePath.split(/[\\/]/).pop();
+    return apiFetch(`/api/books/import-errors/${encodeURIComponent(fileName)}`, {
+      token,
+      responseType: "blob",
     });
   },
 

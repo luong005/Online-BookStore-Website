@@ -76,14 +76,83 @@ code {
 }
 
 .brand {
-  display: grid;
-  gap: 2px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: fit-content;
   padding: 0;
   color: var(--ink);
   text-align: left;
   border: 0;
   background: transparent;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #2563eb, #4338ca);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
+}
+
+.brand-mark svg {
+  width: 28px;
+  height: 28px;
+}
+
+.brand-name {
+  display: grid;
+  gap: 1px;
+}
+
+.brand-name small {
+  font-size: 0.6rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.header-banner {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 45px;
+  margin: -2px -12px -7px;
+  padding: 6px 16px;
+  border-radius: 9px;
+  color: #173a70;
+  background: linear-gradient(100deg, #dbeafe 0%, #eff6ff 58%, #fef3c7 100%);
+  font-size: 0.88rem;
+}
+
+.header-banner-art {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 28px;
+}
+
+.header-banner-art i {
+  width: 8px;
+  height: 22px;
+  border-radius: 2px;
+  background: #2563eb;
+  transform: rotate(-7deg);
+}
+
+.header-banner-art i:nth-child(2) {
+  height: 26px;
+  background: #f59e0b;
+  transform: rotate(5deg);
+}
+
+.header-banner-art i:nth-child(3) {
+  height: 20px;
+  background: #4f46e5;
+  transform: rotate(-11deg);
 }
 
 .brand span {
@@ -735,14 +804,17 @@ main {
 }
 
 .recommendation-controls {
+  position: absolute;
+  inset: 0;
   display: flex;
-  flex-shrink: 0;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
 }
 
 .recommendation-controls button {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border: 1px solid #bfdbfe;
   border-radius: 50%;
   color: var(--accent-strong);
@@ -750,9 +822,18 @@ main {
   font-size: 1.7rem;
   line-height: 1;
   cursor: pointer;
+  opacity: 0;
+  pointer-events: auto;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.2);
+  transition: opacity 160ms ease;
 }
 
-.recommendation-controls button:disabled {
+.recommendations-carousel:hover .recommendation-controls button,
+.recommendations-carousel:focus-within .recommendation-controls button {
+  opacity: 1;
+}
+
+.recommendations-carousel .recommendation-controls button:disabled {
   opacity: 0.4;
   cursor: default;
 }
@@ -765,6 +846,18 @@ main {
   overscroll-behavior-inline: contain;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
+  cursor: grab;
+}
+
+.recommendations-carousel {
+  position: relative;
+  min-width: 0;
+}
+
+.recommendations-track.dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  user-select: none;
 }
 
 .recommendations-track::-webkit-scrollbar {
@@ -779,6 +872,12 @@ main {
 .recommendations-track .recommended-book {
   flex: 0 0 clamp(210px, 27%, 250px);
   scroll-snap-align: start;
+}
+
+@media (hover: none) {
+  .recommendation-controls button {
+    opacity: 1;
+  }
 }
 
 .catalog-recommendations-eyebrow {
@@ -1216,6 +1315,20 @@ main {
 
 .search-modal {
   padding: 18px;
+}
+
+.import-result {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+}
+
+.import-result p {
+  margin: 0;
 }
 
 .book-detail-backdrop {

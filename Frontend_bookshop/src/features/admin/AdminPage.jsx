@@ -230,6 +230,8 @@ export function AdminPage({
   isSignedIn,
   month,
   revenue,
+  revenueLoading,
+  revenueError,
   bestSellers,
   bestSellerTop,
   users,
@@ -239,8 +241,9 @@ export function AdminPage({
   bookForm,
   updateBookForm,
   importFile,
+  importResult,
   onMonthChange,
-  onLoadDashboard,
+  onLoadRevenue,
   onBestSellerTopChange,
   onSearchBestSellers,
   onUserSearchChange,
@@ -250,6 +253,7 @@ export function AdminPage({
   onImportFileChange,
   onCreateBook,
   onImportBooks,
+  onDownloadImportErrors,
   onUpdateBook,
   onDeleteBook,
 }) {
@@ -310,7 +314,7 @@ export function AdminPage({
           <div className="panel gradient-panel">
             <div className="section-heading clean-heading">
               <h2>Doanh thu theo tháng</h2>
-              <button className="primary-btn" type="button" disabled={!isSignedIn} onClick={onLoadDashboard}>
+              <button className="primary-btn" type="button" disabled={!isSignedIn || revenueLoading} onClick={onLoadRevenue}>
                 Tải doanh thu
               </button>
             </div>
@@ -327,10 +331,11 @@ export function AdminPage({
               </label>
               <StatCard
                 label={`Tổng tiền tháng ${month}`}
-                value={revenue === null ? "Chưa tải" : formatMoney(revenue)}
+                value={revenueLoading ? "Đang tải..." : revenue === null ? "Chưa tải" : formatMoney(revenue)}
                 helper="Lấy từ API doanh thu của backend"
               />
             </div>
+            {revenueError ? <p className="message error" role="alert">{revenueError}</p> : null}
           </div>
 
           <div className="panel">
@@ -522,6 +527,19 @@ export function AdminPage({
                 Tải file lên
               </button>
             </form>
+            {importResult ? (
+              <div className="import-result" role="status">
+                <strong>Đã thêm {importResult.insertedCount} sách thành công.</strong>
+                {importResult.failedCount > 0 ? (
+                  <>
+                    <p>{importResult.failedCount} dòng lỗi được ghi trong file Excel bên dưới.</p>
+                    {importResult.errorFilePath ? (
+                      <button className="ghost-btn" type="button" onClick={onDownloadImportErrors}>Tải file Excel lỗi</button>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+            ) : null}
           </section>
         </div>
       ) : null}
@@ -533,7 +551,9 @@ export function AdminPage({
               Đóng
             </button>
             <h2>Cập nhật sách</h2>
-            <form className="stack-form" onSubmit={onUpdateBook}>
+            <form className="stack-form" onSubmit={async (event) => {
+              if (await onUpdateBook(event)) closeProductModal();
+            }}>
               <label>
                 Mã sách
                 <input readOnly value={`Sách ID: ${updateBookForm.id}`} />

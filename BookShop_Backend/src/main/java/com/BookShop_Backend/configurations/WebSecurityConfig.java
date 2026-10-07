@@ -47,6 +47,7 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/book-*").hasRole(RoleEntity.ADMIN)
                         .requestMatchers(HttpMethod.POST, "/api/book-*").hasRole(RoleEntity.ADMIN)
                         .requestMatchers(HttpMethod.POST, "/api/book").hasRole(RoleEntity.ADMIN)
+                        .requestMatchers(HttpMethod.GET, "/api/books/import-errors/*").hasRole(RoleEntity.ADMIN)
                         .requestMatchers(HttpMethod.GET, "/api/admin/dashboard/revenue-*").hasRole(RoleEntity.ADMIN)
                         .requestMatchers(HttpMethod.GET, "/api/admin/dashboard/best-selling-books-*").hasRole(RoleEntity.ADMIN)
                         .requestMatchers(HttpMethod.GET, "/api/admin/dashboard/user").hasRole(RoleEntity.ADMIN)

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { EmptyState } from "../../shared/components/EmptyState";
 import { formatMoney } from "../../shared/utils/formatters";
 import { BookCard } from "./BookCard";
@@ -30,6 +31,7 @@ export function BookCatalog({
 }) {
   const [currentPage, setCurrentPage] = useState(1);
   const recommendationsRef = useRef(null);
+  const dragRef = useRef(null);
   const [recommendationScroll, setRecommendationScroll] = useState({ previous: false, next: false });
   const hasFilters = Object.values(appliedFilters).some((value) => String(value).trim());
   const totalPages = Math.max(1, Math.ceil(books.length / booksPerPage));
@@ -70,6 +72,36 @@ export function BookCatalog({
     if (track) track.scrollBy({ left: direction * track.clientWidth * 0.8, behavior: "smooth" });
   }
 
+  function startRecommendationDrag(event) {
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
+    dragRef.current = { startX: event.clientX, scrollLeft: event.currentTarget.scrollLeft, dragging: false };
+  }
+
+  function moveRecommendationDrag(event) {
+    const drag = dragRef.current;
+    if (!drag) return;
+    if (!drag.dragging && Math.abs(event.clientX - drag.startX) < 5) return;
+    if (!drag.dragging) {
+      drag.dragging = true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+      event.currentTarget.classList.add("dragging");
+    }
+    event.currentTarget.scrollLeft = drag.scrollLeft - (event.clientX - drag.startX);
+  }
+
+  function endRecommendationDrag(event) {
+    event.currentTarget.classList.remove("dragging");
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (!dragRef.current?.dragging) dragRef.current = null;
+  }
+
+  function preventClickAfterDrag(event) {
+    if (!dragRef.current?.dragging) return;
+    event.preventDefault();
+    event.stopPropagation();
+    dragRef.current = null;
+  }
+
   function goToPage(page) {
     setCurrentPage(Math.min(Math.max(1, page), totalPages));
   }
@@ -83,7 +115,7 @@ export function BookCatalog({
         </div>
       </div>
 
-      {searchOpen ? (
+      {searchOpen ? createPortal(
         <div className="modal-backdrop" role="presentation" onMouseDown={onToggleSearch}>
           <div className="modal-card search-modal" onMouseDown={(event) => event.stopPropagation()}>
             <button className="close-btn" type="button" onClick={onToggleSearch}>
@@ -98,7 +130,7 @@ export function BookCatalog({
               onReset={onResetFilters}
             />
           </div>
-        </div>
+        </div>, document.body
       ) : null}
 
       <div className="catalog-layout">
@@ -131,25 +163,30 @@ export function BookCatalog({
                 <h2 id="recommendations-heading">Sách bán chạy nhất</h2>
                 <p className="muted-text">Những cuốn sách được mua nhiều nhất tại cửa hàng.</p>
               </div>
-              {recommendationScroll.previous || recommendationScroll.next ? (
-                <div className="recommendation-controls" aria-label="Điều hướng sách bán chạy">
-                  <button type="button" aria-label="Xem sách bán chạy trước" disabled={!recommendationScroll.previous} onClick={() => scrollRecommendations(-1)}>&lsaquo;</button>
-                  <button type="button" aria-label="Xem sách bán chạy tiếp" disabled={!recommendationScroll.next} onClick={() => scrollRecommendations(1)}>&rsaquo;</button>
-                </div>
-              ) : null}
             </div>
             {loadingRecommendations ? (
               <p className="muted-text" role="status">Đang tải sách bán chạy...</p>
             ) : recommendationsError ? (
               <p className="muted-text" role="status">Chưa tải được sách bán chạy.</p>
             ) : recommendedBestSellers.length ? (
-              <div className="recommendations-track" ref={recommendationsRef} role="region" aria-label="Danh sách sách bán chạy" tabIndex={0}>
-                {recommendedBestSellers.map((book, index) => (
-                  <div className="recommended-book" key={book.id}>
-                    <span className="recommended-book-rank">#{index + 1} bán chạy</span>
-                    <BookCard book={book} onAddToCart={onAddToCart} onViewDetail={onViewDetail} />
+              <div className="recommendations-carousel">
+                <div className="recommendations-track" ref={recommendationsRef} role="region" aria-label="Danh sách sách bán chạy" tabIndex={0}
+                  onPointerDown={startRecommendationDrag} onPointerMove={moveRecommendationDrag}
+                  onPointerUp={endRecommendationDrag} onPointerCancel={endRecommendationDrag}
+                  onClickCapture={preventClickAfterDrag} onDragStart={(event) => event.preventDefault()}>
+                  {recommendedBestSellers.map((book, index) => (
+                    <div className="recommended-book" key={book.id}>
+                      <span className="recommended-book-rank">#{index + 1} bán chạy</span>
+                      <BookCard book={book} onAddToCart={onAddToCart} onViewDetail={onViewDetail} />
+                    </div>
+                  ))}
+                </div>
+                {recommendationScroll.previous || recommendationScroll.next ? (
+                  <div className="recommendation-controls" aria-label="Điều hướng sách bán chạy">
+                    <button type="button" aria-label="Xem sách bán chạy trước" disabled={!recommendationScroll.previous} onClick={() => scrollRecommendations(-1)}>&lsaquo;</button>
+                    <button type="button" aria-label="Xem sách bán chạy tiếp" disabled={!recommendationScroll.next} onClick={() => scrollRecommendations(1)}>&rsaquo;</button>
                   </div>
-                ))}
+                ) : null}
               </div>
             ) : (
               <p className="muted-text">Chưa có sách bán chạy để đề xuất.</p>

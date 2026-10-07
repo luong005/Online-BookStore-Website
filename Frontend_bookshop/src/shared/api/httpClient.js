@@ -77,7 +77,7 @@ function getErrorMessageFromPayload(payload, status) {
 }
 
 export async function apiFetch(path, options = {}) {
-  const { method = "GET", body, token, headers = {}, skipRefresh = false, local = false } = options;
+  const { method = "GET", body, token, headers = {}, skipRefresh = false, local = false, responseType = "json" } = options;
   const finalHeaders = { ...headers };
   const isFormData = body instanceof FormData;
 
@@ -96,7 +96,7 @@ export async function apiFetch(path, options = {}) {
     credentials: "include",
   });
 
-  let payload = await parseResponsePayload(response);
+  const payload = responseType === "blob" && response.ok ? await response.blob() : await parseResponsePayload(response);
 
   if (!response.ok && token && !skipRefresh && (response.status === 401 || response.status === 403)) {
     try {
@@ -113,7 +113,7 @@ export async function apiFetch(path, options = {}) {
     throw new ApiError(getErrorMessageFromPayload(payload, response.status), response.status, payload);
   }
 
-  return unwrapApiResponse(payload);
+  return responseType === "blob" ? payload : unwrapApiResponse(payload);
 }
 
 export function toQuery(params) {

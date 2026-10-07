@@ -126,6 +126,9 @@ export default function App() {
   const [orderForm, setOrderForm] = useState({ shippingAddress: "", phoneNumber: "" });
   const [adminMonth, setAdminMonth] = useState(new Date().getMonth() + 1);
   const [revenue, setRevenue] = useState(null);
+  const [revenueLoading, setRevenueLoading] = useState(false);
+  const [revenueError, setRevenueError] = useState("");
+  const revenueRequestId = useRef(0);
   const [bestSellers, setBestSellers] = useState([]);
   const [recommendedBestSellers, setRecommendedBestSellers] = useState([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
@@ -137,6 +140,7 @@ export default function App() {
   const [bookForm, setBookForm] = useState(emptyBookForm);
   const [updateBookForm, setUpdateBookForm] = useState(emptyUpdateBookForm);
   const [importFile, setImportFile] = useState(null);
+  const [importResult, setImportResult] = useState(null);
   const { busy, notice, error, setNotice, setError, runAction } = useAsyncAction();
 
   const isSignedIn = Boolean(token);
@@ -251,13 +255,28 @@ export default function App() {
   async function loadAdminDashboard(authToken = token) {
     if (!authToken) return;
     await runAction(async () => {
-      const [revenueData, sellerData] = await Promise.all([
-        adminService.getRevenue(adminMonth, authToken),
+      const [, sellerData] = await Promise.all([
+        loadRevenue(adminMonth, authToken),
         adminService.getBestSellers(bestSellerTop || 10, authToken),
       ]);
-      setRevenue(revenueData);
       setBestSellers(normalizeList(sellerData));
     }, "Đang tải dashboard...");
+  }
+
+  async function loadRevenue(month = adminMonth, authToken = token) {
+    if (!authToken || !month || Number(month) < 1 || Number(month) > 12) return;
+    const requestId = ++revenueRequestId.current;
+    setRevenueLoading(true);
+    setRevenueError("");
+    setRevenue(null);
+    try {
+      const data = await adminService.getRevenue(month, authToken);
+      if (requestId === revenueRequestId.current) setRevenue(data);
+    } catch (err) {
+      if (requestId === revenueRequestId.current) setRevenueError(err.message || "Không tải được doanh thu.");
+    } finally {
+      if (requestId === revenueRequestId.current) setRevenueLoading(false);
+    }
   }
 
   async function loadBestSellers(authToken = token, top = bestSellerTop) {
@@ -311,7 +330,7 @@ export default function App() {
     let active = true;
     setLoadingRecommendations(true);
     setRecommendationsError(false);
-    bookService.getBestSellers(4)
+    bookService.getBestSellers(10)
       .then((data) => {
         if (active) setRecommendedBestSellers(normalizeList(data));
       })
@@ -371,7 +390,12 @@ export default function App() {
   useEffect(() => {
     if (!token || !isAdmin || activeTab !== "admin") return;
     loadAdminDashboard();
-  }, [activeTab, isAdmin, adminMonth]);
+  }, [activeTab, isAdmin]);
+
+  useEffect(() => {
+    if (!token || !isAdmin || activeTab !== "admin") return;
+    loadRevenue(adminMonth);
+  }, [adminMonth]);
 
   useEffect(() => {
     if (!token) return;
@@ -602,22 +626,41 @@ export default function App() {
 
   async function handleImportBooks(event) {
     event.preventDefault();
+    const form = event.currentTarget;
     if (!importFile) {
       setError("Vui lòng chọn file Excel.");
       return;
     }
 
+    setImportResult(null);
     await runAction(async () => {
-      await bookService.importBooks(importFile, token);
+      const result = await bookService.importBooks(importFile, token);
+      setImportResult(result);
       setImportFile(null);
+      form.reset();
       await loadBooks();
-      setNotice("Đã import sách từ Excel.");
+      setNotice(result.failedCount ? `Đã thêm ${result.insertedCount} sách; ${result.failedCount} dòng lỗi.` : `Đã thêm ${result.insertedCount} sách thành công.`);
     }, "Đang import Excel...");
+  }
+
+  async function handleDownloadImportErrors() {
+    if (!importResult?.errorFilePath) return;
+    await runAction(async () => {
+      const blob = await bookService.downloadImportErrors(importResult.errorFilePath, token);
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = importResult.errorFilePath.split(/[\\/]/).pop() || "books_import_errors.xlsx";
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    }, "Đang tải file lỗi...");
   }
 
   async function handleUpdateBook(event) {
     event.preventDefault();
-    await runAction(async () => {
+    return runAction(async () => {
       await bookService.updateBook(
         updateBookForm.id,
         {
@@ -631,6 +674,7 @@ export default function App() {
       setUpdateBookForm(emptyUpdateBookForm);
       await loadBooks();
       setNotice("Đã cập nhật sách.");
+      return true;
     }, "Đang cập nhật sách...");
   }
 
@@ -660,7 +704,13 @@ export default function App() {
     <div className={isAdmin ? "app-shell admin-shell" : "app-shell"}>
       <header className="topbar">
         <button className="brand" type="button" onClick={() => navigateTo(isAdmin ? "admin" : "shop")}>
-          <span>{isAdmin ? "BookShop" : "BookShop"}</span>
+          <span className="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none">
+              <path d="M24 12c-5-4-11-5-18-3v25c7-2 13-1 18 3 5-4 11-5 18-3V9c-7-2-13-1-18 3Z" fill="white" stroke="white" strokeWidth="2" strokeLinejoin="round" />
+              <path d="M24 12v25M10 14c5-1 9 0 12 2m4 0c3-2 7-3 12-2M10 20c5-1 9 0 12 2m4 0c3-2 7-3 12-2" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </span>
+          <span className="brand-name">BookShop<small>Mỗi trang sách, một hành trình</small></span>
         </button>
 
         <nav className="nav-tabs" aria-label="Điều hướng chính">
@@ -689,11 +739,6 @@ export default function App() {
           >
             Giới thiệu
           </button>
-          {isAdmin ? (
-            <button className={activeTab === "admin" ? "active" : ""} type="button" onClick={() => navigateTo("admin")}>
-              Admin
-            </button>
-          ) : null}
         </nav>
 
         {!isSignedIn ? (
@@ -718,6 +763,7 @@ export default function App() {
             {accountMenuOpen ? (
               <div className="dropdown-menu">
                 <strong>{getProfileName(profile) || "Tài khoản"}</strong>
+                {isAdmin ? <button type="button" onClick={() => navigateTo("admin")}>Quản trị</button> : null}
                 <button type="button" onClick={() => { setProfileEditing(false); navigateTo("profile"); }}>
                   Thông tin cá nhân
                 </button>
@@ -731,6 +777,10 @@ export default function App() {
             ) : null}
           </div>
         )}
+        <div className="header-banner" aria-label="Khám phá sách cùng BookShop">
+          <span className="header-banner-art" aria-hidden="true"><i /><i /><i /></span>
+          <span><strong>Khám phá câu chuyện tiếp theo</strong> · Chọn một cuốn sách, mở thêm một thế giới.</span>
+        </div>
       </header>
 
       <main>
@@ -741,6 +791,8 @@ export default function App() {
             isSignedIn={isSignedIn}
             month={adminMonth}
             revenue={revenue}
+            revenueLoading={revenueLoading}
+            revenueError={revenueError}
             bestSellers={bestSellers}
             bestSellerTop={bestSellerTop}
             users={users}
@@ -750,17 +802,19 @@ export default function App() {
             bookForm={bookForm}
             updateBookForm={updateBookForm}
             importFile={importFile}
+            importResult={importResult}
             onMonthChange={setAdminMonth}
-            onLoadDashboard={loadAdminDashboard}
+            onLoadRevenue={() => loadRevenue()}
             onBestSellerTopChange={setBestSellerTop}
             onSearchBestSellers={handleSearchBestSellers}
             onUserSearchChange={setUserSearch}
             onSearchUsers={handleSearchUsers}
             onBookFormChange={setBookForm}
             onUpdateBookFormChange={setUpdateBookForm}
-            onImportFileChange={setImportFile}
+            onImportFileChange={(file) => { setImportFile(file); setImportResult(null); }}
             onCreateBook={handleCreateBook}
             onImportBooks={handleImportBooks}
+            onDownloadImportErrors={handleDownloadImportErrors}
             onUpdateBook={handleUpdateBook}
             onDeleteBook={handleDeleteBook}
           />

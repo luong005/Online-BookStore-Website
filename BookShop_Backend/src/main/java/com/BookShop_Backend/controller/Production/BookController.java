@@ -10,10 +10,17 @@ import com.BookShop_Backend.services.IOrderService;
 import com.BookShop_Backend.type.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 @RestController
@@ -52,6 +59,22 @@ public class BookController {
     public ResponseEntity<?> insertBooks(@RequestParam("file") MultipartFile file) {
         ImportBooksResponseDTO result = bookService.insertBooks(file);
         return ResponseEntity.ok(ApiResponse.success("Import sach thanh cong", result));
+    }
+
+    @GetMapping("/books/import-errors/{fileName}")
+    public ResponseEntity<Resource> downloadImportErrors(@PathVariable String fileName) {
+        if (!fileName.matches("books_import_errors_\\d{8}_\\d{6}\\.xlsx")) {
+            return ResponseEntity.notFound().build();
+        }
+        Path directory = Paths.get("import-errors").toAbsolutePath().normalize();
+        Path file = directory.resolve(fileName).normalize();
+        if (!file.startsWith(directory) || !Files.isRegularFile(file)) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(new FileSystemResource(file));
     }
 
     @PostMapping("/book")
