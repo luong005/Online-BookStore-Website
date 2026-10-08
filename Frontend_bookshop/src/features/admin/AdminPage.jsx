@@ -242,6 +242,7 @@ export function AdminPage({
   updateBookForm,
   importFile,
   importResult,
+  importDownloadError,
   onMonthChange,
   onLoadRevenue,
   onBestSellerTopChange,
@@ -536,6 +537,7 @@ export function AdminPage({
                     {importResult.errorFilePath ? (
                       <button className="ghost-btn" type="button" onClick={onDownloadImportErrors}>Tải file Excel lỗi</button>
                     ) : null}
+                    {importDownloadError ? <p className="import-download-error" role="alert">{importDownloadError}</p> : null}
                   </>
                 ) : null}
               </div>

@@ -14,7 +14,7 @@ import { orderService } from "../features/orders/orderService";
 import { StatusMessages } from "../shared/components/StatusMessages";
 import { useAsyncAction } from "../shared/hooks/useAsyncAction";
 import { isAdminAccount } from "../shared/utils/auth";
-import { normalizeList } from "../shared/utils/formatters";
+import { getErrorMessage, normalizeList } from "../shared/utils/formatters";
 
 const emptyFilters = { name: "", category: "", minPrice: "", maxPrice: "" };
 const validPages = new Set(["shop", "cart", "orders", "guide", "about", "login", "register", "profile", "password", "admin"]);
@@ -141,6 +141,7 @@ export default function App() {
   const [updateBookForm, setUpdateBookForm] = useState(emptyUpdateBookForm);
   const [importFile, setImportFile] = useState(null);
   const [importResult, setImportResult] = useState(null);
+  const [importDownloadError, setImportDownloadError] = useState("");
   const { busy, notice, error, setNotice, setError, runAction } = useAsyncAction();
 
   const isSignedIn = Boolean(token);
@@ -636,6 +637,7 @@ export default function App() {
     }
 
     setImportResult(null);
+    setImportDownloadError("");
     await runAction(async () => {
       const result = await bookService.importBooks(importFile, token);
       setImportResult(result);
@@ -648,16 +650,26 @@ export default function App() {
 
   async function handleDownloadImportErrors() {
     if (!importResult?.errorFilePath) return;
+    setImportDownloadError("");
     await runAction(async () => {
-      const blob = await bookService.downloadImportErrors(importResult.errorFilePath, token);
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = importResult.errorFilePath.split(/[\\/]/).pop() || "books_import_errors.xlsx";
-      document.body.append(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      try {
+        const blob = await bookService.downloadImportErrors(importResult.errorFilePath, token);
+        const signature = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+        if (signature[0] !== 0x50 || signature[1] !== 0x4b || signature[2] !== 0x03 || signature[3] !== 0x04) {
+          throw new Error("Server không trả về file Excel hợp lệ. Vui lòng thử lại hoặc kiểm tra backend.");
+        }
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = importResult.errorFilePath.split(/[\\/]/).pop().split(/[?#]/)[0];
+        document.body.append(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      } catch (error) {
+        setImportDownloadError(getErrorMessage(error));
+        throw error;
+      }
     }, "Đang tải file lỗi...");
   }
 
@@ -806,6 +818,7 @@ export default function App() {
             updateBookForm={updateBookForm}
             importFile={importFile}
             importResult={importResult}
+            importDownloadError={importDownloadError}
             onMonthChange={setAdminMonth}
             onLoadRevenue={() => loadRevenue()}
             onBestSellerTopChange={setBestSellerTop}

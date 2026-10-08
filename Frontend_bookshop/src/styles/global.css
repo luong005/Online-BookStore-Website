@@ -1331,6 +1331,10 @@ main {
   margin: 0;
 }
 
+.import-result .import-download-error {
+  color: #b91c1c;
+}
+
 .book-detail-backdrop {
   width: 100vw;
   height: 100dvh;

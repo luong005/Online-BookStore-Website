@@ -33,7 +33,10 @@ export const bookService = {
   },
 
   downloadImportErrors(errorFilePath, token) {
-    const fileName = errorFilePath.split(/[\\/]/).pop();
+    const fileName = errorFilePath.split(/[\\/]/).pop().split(/[?#]/)[0];
+    if (!/^books_import_errors_\d{8}_\d{6}\.xlsx$/.test(fileName)) {
+      throw new Error("Đường dẫn file Excel lỗi không hợp lệ.");
+    }
     return apiFetch(`/api/books/import-errors/${encodeURIComponent(fileName)}`, {
       token,
       responseType: "blob",
