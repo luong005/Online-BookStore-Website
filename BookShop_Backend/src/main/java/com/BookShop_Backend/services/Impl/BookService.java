@@ -137,6 +137,7 @@ public class BookService implements IBookService {
             DataFormatter formatter = new DataFormatter();
             Row headerRow = sheet.getRow(sheet.getFirstRowNum());
             int totalColumns = getTotalColumnsFromHeader(headerRow);
+            String[] errorFileHeader = buildErrorFileHeader(headerRow, formatter, totalColumns);
 
             // 3) Dung EasyExcel map tung dong vao BookDTO theo @ExcelProperty
             // Neu dong nao convert/map that bai, listener se ghi lai rowErrors
@@ -187,7 +188,7 @@ public class BookService implements IBookService {
             // 8) Neu co loi thi phat sinh file excel loi, neu khong thi de null
             String errorFilePath = null;
             if (!errorRows.isEmpty()) {
-                errorFilePath = writeErrorFile(errorRows);
+                errorFilePath = writeErrorFile(errorFileHeader, errorRows);
             }
 
             // 9) Tra ket qua tong hop import
@@ -238,7 +239,7 @@ public class BookService implements IBookService {
         return value == null ? "" : value;
     }
 
-    private String writeErrorFile(List<String[]> rows) throws IOException {
+    private String writeErrorFile(String[] header, List<String[]> rows) throws IOException {
         // Tao thu muc luu file loi neu chua ton tai
         Path dir = Paths.get("import-errors");
         Files.createDirectories(dir);
@@ -248,7 +249,6 @@ public class BookService implements IBookService {
 
         try (Workbook workbook = new XSSFWorkbook(); OutputStream os = Files.newOutputStream(path)) {
             Sheet sheet = workbook.createSheet("errors");
-            String[] header = {"rowNumber", "imageUrl", "price", "stock", "name", "content", "authorName", "categoryName", "publisher", "reason"};
             Row headerRow = sheet.createRow(0);
             for (int i = 0; i < header.length; i++) {
                 headerRow.createCell(i).setCellValue(header[i]);
@@ -300,6 +300,17 @@ public class BookService implements IBookService {
         }
         data[data.length - 1] = reason == null ? "Du lieu khong hop le" : reason;
         return data;
+    }
+
+    private String[] buildErrorFileHeader(Row headerRow, DataFormatter formatter, int totalColumns) {
+        String[] header = new String[totalColumns + 2];
+        header[0] = "rowNumber";
+        for (int i = 0; i < totalColumns; i++) {
+            String columnName = safeCell(headerRow, i, formatter);
+            header[i + 1] = columnName.isBlank() ? "column" + (i + 1) : columnName;
+        }
+        header[header.length - 1] = "reason";
+        return header;
     }
 
     private int getTotalColumnsFromHeader(Row headerRow) {
