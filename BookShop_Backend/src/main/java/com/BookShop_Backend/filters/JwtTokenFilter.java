@@ -93,6 +93,10 @@ public class JwtTokenFilter  extends OncePerRequestFilter {
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
         }
+        if ("GET".equalsIgnoreCase(request.getMethod())
+                && request.getServletPath().contains(String.format("%s/books/import-errors/", apiPrefix))) {
+            return false;
+        }
         final List<Pair<String, String>> bypassTokens = Arrays.asList(
                 Pair.of(String.format("%s/refresh", apiPrefix), "POST"),
                 Pair.of(String.format("%s/logout", apiPrefix), "POST"),
