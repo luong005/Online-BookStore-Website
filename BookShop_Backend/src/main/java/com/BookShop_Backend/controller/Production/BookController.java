@@ -10,6 +10,7 @@ import com.BookShop_Backend.services.IOrderService;
 import com.BookShop_Backend.type.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -17,6 +18,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +32,9 @@ import java.util.List;
 public class BookController {
     private final IBookService bookService;
     private final IOrderService orderService;
+
+    @Value("${app.public-base-url:}")
+    private String publicBaseUrl;
 
     @GetMapping("/books/best-selling-{top}")
     public ResponseEntity<?> getBestSellingBooks(@PathVariable Integer top) {
@@ -58,6 +64,7 @@ public class BookController {
     @PostMapping("/books")
     public ResponseEntity<?> insertBooks(@RequestParam("file") MultipartFile file) {
         ImportBooksResponseDTO result = bookService.insertBooks(file);
+        attachImportErrorDownloadUrl(result);
         return ResponseEntity.ok(ApiResponse.success("Import sach thanh cong", result));
     }
 
@@ -75,6 +82,29 @@ public class BookController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(new FileSystemResource(file));
+    }
+
+    private void attachImportErrorDownloadUrl(ImportBooksResponseDTO result) {
+        String fileName = result.getErrorFilePath();
+        if (fileName == null || fileName.isBlank()) {
+            return;
+        }
+        result.setErrorFilePath(buildImportErrorDownloadUrl(fileName));
+    }
+
+    private String buildImportErrorDownloadUrl(String fileName) {
+        if (publicBaseUrl != null && !publicBaseUrl.isBlank()) {
+            String normalizedBaseUrl = publicBaseUrl.trim().replaceAll("/+$", "");
+            return UriComponentsBuilder.fromUriString(normalizedBaseUrl)
+                    .path("/api/books/import-errors/")
+                    .path(fileName)
+                    .toUriString();
+        }
+
+        return ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/books/import-errors/")
+                .path(fileName)
+                .toUriString();
     }
 
     @PostMapping("/book")

@@ -107,7 +107,7 @@ function UserTable({ users }) {
 
 function ProductTable({ books, onEdit, onDelete }) {
   if (!books.length) {
-    return <EmptyState>Chưa tải được danh sách sách từ backend.</EmptyState>;
+    return <EmptyState>Chưa tải được danh sách sách.</EmptyState>;
   }
 
   return (
@@ -332,7 +332,7 @@ export function AdminPage({
               <StatCard
                 label={`Tổng tiền tháng ${month}`}
                 value={revenueLoading ? "Đang tải..." : revenue === null ? "Chưa tải" : formatMoney(revenue)}
-                helper="Lấy từ API doanh thu của backend"
+        
               />
             </div>
             {revenueError ? <p className="message error" role="alert">{revenueError}</p> : null}

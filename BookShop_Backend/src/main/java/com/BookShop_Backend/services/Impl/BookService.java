@@ -264,7 +264,7 @@ public class BookService implements IBookService {
             }
             workbook.write(os);
         }
-        return path.toAbsolutePath().toString();
+        return fileName;
     }
 
     private void validateBookDto(BookDTO dto) {
